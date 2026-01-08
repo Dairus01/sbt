@@ -747,10 +747,20 @@ object Defaults extends BuildCommon {
             s.log
           )
           val out = t / "compiler-bridge" / jar.getName()
+          val jarVf = conv.toVirtualFile(jar.toPath())
+          val cacheConfig = Def.cacheConfiguration.value
+          val store = cacheConfig.store
+          val refs = store.putBlobs(Seq(jarVf))
+          val hashedRef = refs.head
           val outVf = conv.toVirtualFile(out.toPath())
-          IO.copyFile(jar, out)
+          val outRef = HashedVirtualFileRef.of(
+            outVf.id(),
+            hashedRef.contentHashStr(),
+            hashedRef.sizeBytes()
+          )
+          store.syncBlobs(Seq(outRef), t.toPath())
           Def.declareOutput(outVf)
-          Vector(outVf: HashedVirtualFileRef)
+          Vector(outRef: HashedVirtualFileRef)
         })(Def.task(Vector.empty))
         .value,
       scalaCompilerBridgeSource := ZincLmUtil.getDefaultBridgeSourceModule(scalaVersion.value),
