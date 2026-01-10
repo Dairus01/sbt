@@ -293,11 +293,17 @@ OPTIONS
         .groupBy(m => (m.organization, m.name))
         .map { case ((org, name), modules) =>
           val versionParsers: Seq[Parser[Option[String]]] =
-            modules.map { id =>
-              token(Space ~> id.version).?
-            }
+            modules
+              .filter(_.version.nonEmpty)
+              .map { id =>
+                token(Space ~> id.version).?
+              }
 
-          (Space ~> token(org) ~ token(Space ~> name) ~ oneOf(versionParsers)).map {
+          val effectiveVersionParser =
+            if (versionParsers.isEmpty) success(None)
+            else oneOf(versionParsers)
+
+          (Space ~> token(org) ~ token(Space ~> name) ~ effectiveVersionParser).map {
             case ((org, name), version) => ArtifactPattern(org, name, version)
           }
         }
