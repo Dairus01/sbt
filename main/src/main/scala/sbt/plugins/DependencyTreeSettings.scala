@@ -280,33 +280,22 @@ OPTIONS
 
   case class ArtifactPattern(organization: String, name: String, version: Option[String])
 
-  private[sbt] def createArtifactPatternParser(
-      graph: ModuleGraph,
-      log: Logger
+  private[plugins] def createArtifactPatternParser(
+      graph: ModuleGraph
   ): Parser[ArtifactPattern] =
     graph.nodes
       .map(_.id)
       .groupBy(m => (m.organization, m.name))
       .map { case ((org, name), modules) =>
-        val (emptyVersions, validVersions) = modules.partition(_.version.isEmpty)
-
-        if emptyVersions.nonEmpty then
-          log.debug(
-            s"whatDependsOn: filtered out modules with empty version for $org:$name: $emptyVersions"
-          )
-
-        // Filter out empty versions to avoid RuntimeException: String literal cannot be empty
-        // when creating token(Space ~> id.version)
+        // Empty versions cause parser token creation to fail
         val versionParsers: Seq[Parser[Option[String]]] =
-          validVersions.map { id =>
-            token(Space ~> id.version).?
-          }
+          modules
+            .filter(_.version.nonEmpty)
+            .map { id =>
+              token(Space ~> id.version).?
+            }
 
-        // If there are no valid versions (e.g. only empty versions existed),
-        // we essentially fallback to allowing no version to be specified,
-        // which matches the empty version modules (and any others) when no version is provided.
-        // If the user tries to provide a version, it won't match (because we have no parsers for it),
-        // effectively disabling version filtering for this module.
+        // Handle modules with only empty versions
         val effectiveVersionParser =
           if versionParsers.isEmpty then success(None)
           else oneOf(versionParsers)
@@ -333,7 +322,7 @@ OPTIONS
           Nil,
           Nil
         )
-      createArtifactPatternParser(graph, state.log)
+      createArtifactPatternParser(graph)
     }
 
   val shouldForceParser: Parser[Boolean] =

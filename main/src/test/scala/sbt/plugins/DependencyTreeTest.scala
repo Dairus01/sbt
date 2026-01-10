@@ -21,7 +21,6 @@ import DependencyTreeSettings.{
 import sbt.internal.graph.ModuleGraph
 import sbt.internal.graph.GraphModuleId
 import sbt.internal.graph.Module
-import sbt.util.Logger
 
 object DependencyTreeTest extends verify.BasicTestSuite:
   test("Parse args") {
@@ -50,7 +49,7 @@ object DependencyTreeTest extends verify.BasicTestSuite:
       ),
       Nil
     )
-    val parser = createArtifactPatternParser(graph, Logger.Null)
+    val parser = createArtifactPatternParser(graph)
 
     // Test matching
     assert(
@@ -66,23 +65,30 @@ object DependencyTreeTest extends verify.BasicTestSuite:
     assert(Parser.parse(" org1 name1", parser) == Right(ArtifactPattern("org1", "name1", None)))
   }
 
-  test("ArtifactPatternParser with empty version") {
+  test("ArtifactPatternParser with completely empty graph") {
+    val graph = ModuleGraph.empty
+    val parser = createArtifactPatternParser(graph)
+
+    // Should fallback to generic parser
+    assert(
+      Parser.parse(" org1 name1 1.0", parser) == Right(
+        ArtifactPattern("org1", "name1", Some("1.0"))
+      )
+    )
+  }
+
+  test("ArtifactPatternParser should not throw RuntimeException on empty version") {
     val graph = ModuleGraph(
       Seq(
         node("org1", "name1", "")
       ),
       Nil
     )
-    // This should not throw RuntimeException
-    val parser = createArtifactPatternParser(graph, Logger.Null)
+    // This previously threw RuntimeException: String literal cannot be empty
+    val parser = createArtifactPatternParser(graph)
 
     // Should parse org and name, version is None
     assert(Parser.parse(" org1 name1", parser) == Right(ArtifactPattern("org1", "name1", None)))
-
-    // Should NOT match empty string as version explicitly
-    // This is hard to test because `token(Space ~> id.version)` where version is empty would match " " if it were allowed.
-    // But since we filtered it out, it shouldn't match.
-    // However, the fallback `success(None)` allows matching just org and name.
   }
 
   test("ArtifactPatternParser mixed valid and empty versions") {
@@ -93,7 +99,7 @@ object DependencyTreeTest extends verify.BasicTestSuite:
       ),
       Nil
     )
-    val parser = createArtifactPatternParser(graph, Logger.Null)
+    val parser = createArtifactPatternParser(graph)
 
     // Valid version should be selectable
     assert(
