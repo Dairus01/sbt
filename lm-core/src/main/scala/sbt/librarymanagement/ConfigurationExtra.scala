@@ -3,7 +3,6 @@
  */
 package sbt.librarymanagement
 
-import scala.annotation.tailrec
 import scala.quoted.*
 
 object Configurations {
@@ -102,7 +101,6 @@ private[librarymanagement] abstract class ConfigurationExtra {
 private[sbt] object ConfigurationMacro:
   def configMacroImpl(name: Expr[String])(using Quotes): Expr[Configuration] =
     import quotes.reflect.*
-    @tailrec
     def enclosingTerm(sym: Symbol): Symbol =
       sym match
         case sym if sym.flags.is(Flags.Macro) => enclosingTerm(sym.owner)

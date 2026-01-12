@@ -16,8 +16,6 @@ import sbt.util.cacheLevel
 import sbt.util.CacheLevelTag
 import xsbti.Attic
 
-import scala.annotation.tailrec
-
 trait ContextUtil[C <: Quotes & scala.Singleton](val valStart: Int):
   val qctx: C
   import qctx.reflect.*
@@ -86,7 +84,6 @@ trait ContextUtil[C <: Quotes & scala.Singleton](val valStart: Int):
       s"Input($tpe, $qual, $term, $name, $tags)"
     def isCacheInput: Boolean = tags.nonEmpty
     lazy val tags = extractTags(qual)
-    @tailrec
     private def extractTags(tree: Term): List[CacheLevelTag] =
       def getCacheLevelAnnotation(tree: Term): Option[Term] =
         Option(tree.tpe.termSymbol) match

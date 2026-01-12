@@ -10,50 +10,61 @@ package sbt.util
 
 import sbt.io.IO
 import sbt.io.syntax.*
-import verify.BasicTestSuite
 
 import CacheImplicits.given
 
-object CacheSpec extends BasicTestSuite:
+import org.scalatest.flatspec.AnyFlatSpec
 
-  test("A cache should NOT throw an exception if read without being written previously"):
+class CacheSpec extends AnyFlatSpec {
+
+  "A cache" should "NOT throw an exception if read without being written previously" in {
     testCache[String, Int] { (cache, store) =>
-      cache(store)("missing") match
-        case Hit(_)  => assert(false, "Expected Miss but got Hit")
+      cache(store)("missing") match {
+        case Hit(_)  => fail()
         case Miss(_) => ()
+      }
     }
+  }
 
-  test("A cache should write a very simple value"):
+  it should "write a very simple value" in {
     testCache[String, Int] { (cache, store) =>
-      cache(store)("missing") match
-        case Hit(_)       => assert(false, "Expected Miss but got Hit")
+      cache(store)("missing") match {
+        case Hit(_)       => fail()
         case Miss(update) => update(5)
+      }
     }
+  }
 
-  test("A cache should be updatable"):
+  it should "be updatable" in {
     testCache[String, Int] { (cache, store) =>
       val value = 5
-      cache(store)("someKey") match
-        case Hit(_)       => assert(false, "Expected Miss but got Hit")
+      cache(store)("someKey") match {
+        case Hit(_)       => fail()
         case Miss(update) => update(value)
+      }
 
-      cache(store)("someKey") match
-        case Hit(read) => assert(read == value)
-        case Miss(_)   => assert(false, "Expected Hit but got Miss")
+      cache(store)("someKey") match {
+        case Hit(read) => assert(read === value); ()
+        case Miss(_)   => fail()
+      }
     }
+  }
 
-  test("A cache should return the value that has been previously written"):
+  it should "return the value that has been previously written" in {
     testCache[String, Int] { (cache, store) =>
       val key = "someKey"
       val value = 5
-      cache(store)(key) match
-        case Hit(_)       => assert(false, "Expected Miss but got Hit")
+      cache(store)(key) match {
+        case Hit(_)       => fail()
         case Miss(update) => update(value)
+      }
 
-      cache(store)(key) match
-        case Hit(read) => assert(read == value)
-        case Miss(_)   => assert(false, "Expected Hit but got Miss")
+      cache(store)(key) match {
+        case Hit(read) => assert(read === value); ()
+        case Miss(_)   => fail()
+      }
     }
+  }
 
   private def testCache[K, V](f: (Cache[K, V], CacheStore) => Unit)(using
       cache: Cache[K, V]
@@ -63,4 +74,4 @@ object CacheSpec extends BasicTestSuite:
       f(cache, store)
     }
 
-end CacheSpec
+}

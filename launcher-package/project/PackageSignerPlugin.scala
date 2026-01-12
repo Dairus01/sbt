@@ -1,6 +1,5 @@
 import sbt._
 import Keys._
-import sbt.internal.librarymanagement.IvyActions
 import com.jsuereth.sbtpgp.SbtPgp
 import com.typesafe.sbt.packager.universal.{ UniversalPlugin, UniversalDeployPlugin }
 import com.typesafe.sbt.packager.debian.{ DebianPlugin, DebianDeployPlugin }
@@ -22,13 +21,13 @@ object PackageSignerPlugin extends sbt.AutoPlugin {
     inConfig(Rpm)(packageSignerSettings)
 
   def subExtension(art: Artifact, ext: String): Artifact =
-    art.withExtension(ext)
+    art.copy(extension = ext)
 
   def packageSignerSettings: Seq[Setting[_]] = Seq(
     signedArtifacts := {
       val artifacts = packagedArtifacts.value
       val r = pgpSigner.value
-      val skipZ = (pgpSigner / skip).value
+      val skipZ = (skip in pgpSigner).value
       val s = streams.value
       if (!skipZ) {
         artifacts flatMap { case (art, f) =>
@@ -40,39 +39,21 @@ object PackageSignerPlugin extends sbt.AutoPlugin {
       else artifacts
     },
     publishSignedConfiguration := Classpaths.publishConfig(
-      publishMavenStyle = publishMavenStyle.value,
-      deliverIvyPattern = (Compile / packageBin / artifactPath).value.getParent + "/[artifact]-[revision](-[classifier]).[ext]",
-      status = if (isSnapshot.value) "integration" else "release",
-      configurations = Vector.empty,
-      artifacts = signedArtifacts.value.toVector,
-      checksums = (publish / checksums).value.toVector,
+      signedArtifacts.value,
+      None,
       resolverName = Classpaths.getPublishTo(publishTo.value).name,
-      logging = ivyLoggingLevel.value,
-      overwrite = isSnapshot.value),
+      checksums    = (checksums in publish).value,
+      logging      = ivyLoggingLevel.value,
+      overwrite    = isSnapshot.value),
     publishLocalSignedConfiguration := Classpaths.publishConfig(
-      publishMavenStyle = publishMavenStyle.value,
-      deliverIvyPattern = (Compile / packageBin / artifactPath).value.getParent + "/[artifact]-[revision](-[classifier]).[ext]",
-      status = if (isSnapshot.value) "integration" else "release",
-      configurations = Vector.empty,
-      artifacts = signedArtifacts.value.toVector,
-      checksums = (publish / checksums).value.toVector,
+      signedArtifacts.value,
+      None,
       resolverName = "local",
-      logging = ivyLoggingLevel.value,
-      overwrite = isSnapshot.value),
-    publishSigned := Def.taskDyn {
-      val config = publishSignedConfiguration.value
-      val s = streams.value
-      Def.task {
-        IvyActions.publish(ivyModule.value, config, s.log)
-      }
-    }.value,
-    publishLocalSigned := Def.taskDyn {
-      val config = publishLocalSignedConfiguration.value
-      val s = streams.value
-      Def.task {
-        IvyActions.publish(ivyModule.value, config, s.log)
-      }
-    }.value
+      checksums    = (checksums in publish).value,
+      logging      = ivyLoggingLevel.value,
+      overwrite    = isSnapshot.value),
+    publishSigned      := Classpaths.publishTask(publishSignedConfiguration, deliver).value,
+    publishLocalSigned := Classpaths.publishTask(publishLocalSignedConfiguration, deliver).value
   )
 
 }

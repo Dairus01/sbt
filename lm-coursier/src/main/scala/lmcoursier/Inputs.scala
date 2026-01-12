@@ -5,7 +5,6 @@ import lmcoursier.definitions.{ Configuration, Module, ModuleName, Organization 
 import sbt.librarymanagement.{ CrossVersion, InclExclRule, ModuleID }
 import sbt.util.Logger
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 
 object Inputs {
@@ -29,7 +28,6 @@ object Inputs {
 
     def allExtends(c: Configuration) = {
       // possibly bad complexity
-      @tailrec
       def helper(current: Set[Configuration]): Set[Configuration] = {
         val newSet = current ++ current.flatMap(configs0.getOrElse(_, Nil))
         if ((newSet -- current).nonEmpty)

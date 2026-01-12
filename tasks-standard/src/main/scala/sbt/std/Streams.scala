@@ -136,8 +136,9 @@ object Streams {
       name: Key => String,
       mkLogger: (Key, PrintWriter) => ManagedLogger,
       mkFactory: File => CacheStoreFactory
-  ): Streams[Key] = (a: Key) =>
-    new ManagedStreams[Key] {
+  ): Streams[Key] = new Streams[Key] {
+
+    def apply(a: Key): ManagedStreams[Key] = new ManagedStreams[Key] {
       private var opened: List[Closeable] = nil
       private var closed = false
 
@@ -215,4 +216,5 @@ object Streams {
         if (closed) sys.error("Streams for '" + name(a) + "' have been closed.")
       }
     }
+  }
 }

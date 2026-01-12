@@ -192,7 +192,10 @@ object ProblemTest extends Properties {
     }
 
   private def copy(edit: WorkspaceEdit): WorkspaceEdit =
-    () => l2jl(jl2l(edit.changes).map(copy))
+    new WorkspaceEdit {
+      override def changes() =
+        l2jl(jl2l(edit.changes).map(copy))
+    }
 
   private def copy(edit: TextEdit): TextEdit =
     new TextEdit {
